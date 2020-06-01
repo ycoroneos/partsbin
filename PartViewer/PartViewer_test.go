@@ -23,7 +23,7 @@ func TestGetQRCode(t *testing.T) {
 func TestMakeQRGrid(t *testing.T) {
 	// Create some parts
 	var parts []*PartsDB.Part
-	for i := 0; i < 50; i++ {
+	for i := 0; i < 150; i++ {
 		name := fmt.Sprintf("part%d", i)
 		parts = append(parts, &PartsDB.Part{
 			Name:   name,
@@ -32,6 +32,9 @@ func TestMakeQRGrid(t *testing.T) {
 		})
 	}
 
-	image := MakeQRGrid(parts)
-	WriteToPostScript(image, "test_qrqode_grid.tiff")
+	images := MakeQRGrid(parts)
+
+	for i, image := range images {
+		WriteToPostScript(image, fmt.Sprintf("test_qrcode_grid_%d.png", i))
+	}
 }

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"image"
 	"image/draw"
+	"image/png"
 	"os"
 
 	"github.com/skip2/go-qrcode"
-	"golang.org/x/image/tiff"
 
 	"github.com/ycoroneos/partsbin/PartsDB"
 )
@@ -23,7 +23,7 @@ func GetQRCode(partName string) []byte {
 }
 
 func inchesToPixels(inches float64) int {
-	dpi := 72.0 // pixels per inch
+	dpi := 300.0 // pixels per inch
 	return int(inches * dpi)
 }
 
@@ -33,7 +33,7 @@ func getPointFromPartIndex(index, rowCount, colCount, xStridePx, yStridePx, xOff
 	return image.Point{xOffsetPx + row*xStridePx, yOffsetPx + col*yStridePx}
 }
 
-func MakeQRGrid(parts []*PartsDB.Part) image.Image {
+func MakeQRGrid(parts []*PartsDB.Part) []image.Image {
 	xStride := inchesToPixels(2.05)
 	yStride := inchesToPixels(.5)
 	stickerWidth := inchesToPixels(1.75)
@@ -47,39 +47,35 @@ func MakeQRGrid(parts []*PartsDB.Part) image.Image {
 	fmt.Printf("paper rect %+v", r)
 	paper := image.NewRGBA(r)
 
-	// distance between columns too little
-	// rotated 90
+	pages := make([]image.Image, 0)
 
-	for i, part := range parts {
-		partImage, _, err := image.Decode(bytes.NewReader(part.QrCode))
-		if err != nil {
-			panic(err)
+	partsperpage := colCount * rowCount
+
+	min := func(a, b int) int {
+		if a <= b {
+			return a
 		}
-		//WriteToPostScript(partImage, fmt.Sprintf("%s.png", part.Name))
-
-		// create a standard rectangle for the parts
-		// partRectangle := image.Rectangle{Min: image.Point{90, 304}, Max: image.Point{stickerWidth + 90, stickerHeight + 304}}
-
-		//// make sure QR code image bounds are within rectangle we define
-		//if !partImage.Bounds().In(partRectangle) {
-		//	panic("qrcode too big for slot")
-		//}
-
-		partLocation := getPointFromPartIndex(i, rowCount, colCount, xStride, yStride, xOffsetPx, yOffsetPx)
-		partRectangle := image.Rectangle{Min: partLocation, Max: image.Point{stickerWidth + partLocation.X, stickerHeight + partLocation.Y}}
-		// translatedPartRectangle := image.Rectangle{Min: partLocation, Max: partLocation.Add(image.Point{stickerWidth, stickerHeight})}
-		//shiftedPartRectange := image.Rectangle{Min:}
-		fmt.Printf("drawing part %d, rectangle %+v, location: %+v\n", i, partRectangle, partLocation)
-
-		// draw.Draw(paper, translatedPartRectangle, partImage, partLocation, draw.Over)
-		draw.Draw(paper, partRectangle, partImage, image.Point{0, 0}, draw.Over)
-		//draw.Draw(paper, translatedPartRectangle, partImage, image.Point{0, 0}, draw.Over)
-		//draw.Draw(paper, partRectangle, partImage, image.Point{-1 * partLocation.Y, -1 * partLocation.X}, draw.Over)
-		//draw.Draw(paper, image.Rectangle{image.Point{-10, -100}, image.Point{-10 - stickerWidth, -100 - stickerHeight}}, partImage, image.Point{-10, -100}, draw.Over)
-		//WriteToPostScript(paper, fmt.Sprintf("paper_%d.png", i))
+		return b
 	}
 
-	return paper
+	for i := 0; i < len(parts); i += partsperpage {
+		thispageparts := parts[i:min(i+partsperpage, len(parts))]
+		for i, part := range thispageparts {
+			partImage, _, err := image.Decode(bytes.NewReader(part.QrCode))
+			if err != nil {
+				panic(err)
+			}
+
+			partLocation := getPointFromPartIndex(i, rowCount, colCount, xStride, yStride, xOffsetPx, yOffsetPx)
+			partRectangle := image.Rectangle{Min: partLocation, Max: image.Point{stickerWidth + partLocation.X, stickerHeight + partLocation.Y}}
+
+			draw.Draw(paper, partRectangle, partImage, image.Point{0, 0}, draw.Over)
+		}
+		pages = append(pages, paper)
+		paper = image.NewRGBA(r)
+	}
+
+	return pages
 }
 
 func WriteToPostScript(image image.Image, filepath string) {
@@ -90,19 +86,19 @@ func WriteToPostScript(image image.Image, filepath string) {
 	}
 	defer outputFile.Close()
 
-	// encode to tiff
-	err = tiff.Encode(outputFile, image, &tiff.Options{
-		Compression: tiff.Uncompressed,
-		Predictor:   false,
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	//// Encode to png.
-	//err = png.Encode(outputFile, image)
+	//// encode to tiff
+	//err = tiff.Encode(outputFile, image, &tiff.Options{
+	//	Compression: tiff.Uncompressed,
+	//	Predictor:   false,
+	//})
 	//if err != nil {
 	//	panic(err)
 	//}
+
+	// Encode to png.
+	err = png.Encode(outputFile, image)
+	if err != nil {
+		panic(err)
+	}
 
 }
