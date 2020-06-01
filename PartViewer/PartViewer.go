@@ -61,6 +61,17 @@ func MakeQRGrid(parts []*PartsDB.Part) []image.Image {
 		return b
 	}
 
+	// grab the font
+	fontBytes, err := ioutil.ReadFile("./font/inconsolata.ttf")
+	if err != nil {
+		panic(err)
+	}
+
+	f, err := truetype.Parse(fontBytes)
+	if err != nil {
+		panic(err)
+	}
+
 	for i := 0; i < len(parts); i += partsperpage {
 		thispageparts := parts[i:min(i+partsperpage, len(parts))]
 		for i, part := range thispageparts {
@@ -74,15 +85,6 @@ func MakeQRGrid(parts []*PartsDB.Part) []image.Image {
 			// Draw part name next to QR code.
 			c := freetype.NewContext()
 			c.SetDst(paper)
-			fontBytes, err := ioutil.ReadFile("./font/inconsolata.ttf")
-			if err != nil {
-				panic(err)
-			}
-
-			f, err := truetype.Parse(fontBytes)
-			if err != nil {
-				panic(err)
-			}
 			d := &font.Drawer{
 				Dst: paper,
 				Src: image.Black,
