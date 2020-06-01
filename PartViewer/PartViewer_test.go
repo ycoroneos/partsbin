@@ -17,7 +17,7 @@ func TestGetQRCode(t *testing.T) {
 		panic(err)
 	}
 
-	WriteToPostScript(partImage, "test_get_qrqode.png")
+	WriteToPNG(partImage, "test_get_qrqode.png")
 
 }
 func TestMakeQRGrid(t *testing.T) {
@@ -35,6 +35,6 @@ func TestMakeQRGrid(t *testing.T) {
 	images := MakeQRGrid(parts)
 
 	for i, image := range images {
-		WriteToPostScript(image, fmt.Sprintf("test_qrcode_grid_%d.png", i))
+		WriteToPNG(image, fmt.Sprintf("test_qrcode_grid_%d.png", i))
 	}
 }

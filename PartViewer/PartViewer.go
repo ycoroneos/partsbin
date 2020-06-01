@@ -2,7 +2,6 @@ package PartViewer
 
 import (
 	"bytes"
-	"fmt"
 	"image"
 	"image/draw"
 	"image/png"
@@ -44,7 +43,6 @@ func MakeQRGrid(parts []*PartsDB.Part) []image.Image {
 
 	//rectangle for the paper
 	r := image.Rectangle{image.Point{0, 0}, image.Point{inchesToPixels(8.5), inchesToPixels(11)}}
-	fmt.Printf("paper rect %+v", r)
 	paper := image.NewRGBA(r)
 
 	pages := make([]image.Image, 0)
@@ -78,22 +76,13 @@ func MakeQRGrid(parts []*PartsDB.Part) []image.Image {
 	return pages
 }
 
-func WriteToPostScript(image image.Image, filepath string) {
+func WriteToPNG(image image.Image, filepath string) {
 	// Write to file.
 	outputFile, err := os.Create(filepath)
 	if err != nil {
 		panic(err)
 	}
 	defer outputFile.Close()
-
-	//// encode to tiff
-	//err = tiff.Encode(outputFile, image, &tiff.Options{
-	//	Compression: tiff.Uncompressed,
-	//	Predictor:   false,
-	//})
-	//if err != nil {
-	//	panic(err)
-	//}
 
 	// Encode to png.
 	err = png.Encode(outputFile, image)
