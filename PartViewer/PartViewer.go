@@ -3,14 +3,25 @@ package PartViewer
 import (
 	"bytes"
 	"image"
+	"image/color"
 	"image/draw"
 	"image/png"
 	"os"
 
+	"github.com/pbnjay/pixfont"
 	"github.com/skip2/go-qrcode"
 
 	"github.com/ycoroneos/partsbin/PartsDB"
 )
+
+type QRCodeImage struct {
+	Image *draw.Image
+}
+
+func (qrci *QRCodeImage) Set(x, y int, c color.Color) {
+	onePxRectangle := image.Rectangle{Min: image.Point{x, y}, Max: image.Point{x + 1, y + 1}}
+	draw.Draw(*qrci.Image), onePxRectangle, &image.Uniform{c}, image.ZP, draw.Over)
+}
 
 func GetQRCode(partName string) []byte {
 	// create a qr code that is 120x120 pixels
@@ -65,6 +76,7 @@ func MakeQRGrid(parts []*PartsDB.Part) []image.Image {
 			}
 
 			partLocation := getPointFromPartIndex(i, rowCount, colCount, xStride, yStride, xOffsetPx, yOffsetPx)
+			pixfont.DrawString(&QRCodeImage{paper}, partLocation.X, partLocation.Y, part.Name, color.Black)
 			partRectangle := image.Rectangle{Min: partLocation, Max: image.Point{stickerWidth + partLocation.X, stickerHeight + partLocation.Y}}
 
 			draw.Draw(paper, partRectangle, partImage, image.Point{0, 0}, draw.Over)
