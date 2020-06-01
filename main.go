@@ -1,52 +1,28 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
-	"github.com/skip2/go-qrcode"
+	"os"
+	"strings"
+
+	"github.com/ycoroneos/partsbin/PartsDB"
 )
 
-type Part struct {
-	row    uint
-	column uint
-	qrCode []byte
-	count  uint
-	name   string
-}
-
-func getQRCode(partName string) []byte {
-	// create a qr code that is 120x120 pixels
-	bytes, err := qrcode.Encode(partName, qrcode.Medium, 120)
-	if err != nil {
-		panic(err)
-	}
-	return bytes
-}
-
-func inchesToPixels(inches float) int {
-	dpi := 300 // pixels per inch
-	return inches * dpi
-}
-
-func makeQRGrid(parts []*Part) Image {
-	xStride := 2         //inches
-	yStride := .5        // inches
-	stickerWidth := 1.75 //inches
-	stickerHeight := .5  //inches
-	colCount := 4
-	rowCount := 20
-	startingPointX, startingPointY := .3, .515 // coordinates of first sticker in inches
-
-	for _, part := range parts {
-		partImage, _, err := image.Decode(part.qrCode)
-		if err != nil {
-			panic(err)
-		}
-	}
-
-}
-
 func main() {
-	fmt.Println("vim-go")
-	_ = qrcode.WriteFile("https://example.org", qrcode.Medium, 0, "qr.png")
+
+	pdb := PartsDB.MakeOrOpenPartsDB("parts_v1.json", 8, 8)
+
+	// loop which reads barcode inputs and decodes them
+	scanner := bufio.NewReader(os.Stdin)
+	for {
+		fmt.Printf("feed me barcode: ")
+		rawBarcode, _ := scanner.ReadString('\n')
+		barcode := strings.SplitAfter(rawBarcode, "-ND")[0]
+		barcode = strings.SplitAfter(barcode, "[)>\x1b[20~06\x1b[19~P")[1]
+		fmt.Printf("decoded %+q\n", barcode)
+		pdb.AddPart(barcode, rawBarcode, 1)
+		pdb.Save()
+	}
 
 }
