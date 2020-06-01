@@ -3,25 +3,19 @@ package PartViewer
 import (
 	"bytes"
 	"image"
-	"image/color"
 	"image/draw"
 	"image/png"
+	"io/ioutil"
 	"os"
 
-	"github.com/pbnjay/pixfont"
+	"github.com/golang/freetype"
+	"github.com/golang/freetype/truetype"
 	"github.com/skip2/go-qrcode"
+	"golang.org/x/image/font"
+	"golang.org/x/image/math/fixed"
 
 	"github.com/ycoroneos/partsbin/PartsDB"
 )
-
-type QRCodeImage struct {
-	Image *draw.Image
-}
-
-func (qrci *QRCodeImage) Set(x, y int, c color.Color) {
-	onePxRectangle := image.Rectangle{Min: image.Point{x, y}, Max: image.Point{x + 1, y + 1}}
-	draw.Draw(*qrci.Image), onePxRectangle, &image.Uniform{c}, image.ZP, draw.Over)
-}
 
 func GetQRCode(partName string) []byte {
 	// create a qr code that is 120x120 pixels
@@ -70,15 +64,38 @@ func MakeQRGrid(parts []*PartsDB.Part) []image.Image {
 	for i := 0; i < len(parts); i += partsperpage {
 		thispageparts := parts[i:min(i+partsperpage, len(parts))]
 		for i, part := range thispageparts {
+			// Create image from QR code
 			partImage, _, err := image.Decode(bytes.NewReader(part.QrCode))
 			if err != nil {
 				panic(err)
 			}
-
 			partLocation := getPointFromPartIndex(i, rowCount, colCount, xStride, yStride, xOffsetPx, yOffsetPx)
-			pixfont.DrawString(&QRCodeImage{paper}, partLocation.X, partLocation.Y, part.Name, color.Black)
-			partRectangle := image.Rectangle{Min: partLocation, Max: image.Point{stickerWidth + partLocation.X, stickerHeight + partLocation.Y}}
 
+			// Draw part name next to QR code.
+			c := freetype.NewContext()
+			c.SetDst(paper)
+			fontBytes, err := ioutil.ReadFile("./font/inconsolata.ttf")
+			if err != nil {
+				panic(err)
+			}
+
+			f, err := truetype.Parse(fontBytes)
+			if err != nil {
+				panic(err)
+			}
+			d := &font.Drawer{
+				Dst: paper,
+				Src: image.Black,
+				Face: truetype.NewFace(f, &truetype.Options{
+					Size: 10,
+					DPI:  300,
+				}),
+				Dot: fixed.P(partLocation.X+partImage.Bounds().Dx()+5, partLocation.Y+(partImage.Bounds().Dy()/2)),
+			}
+			d.DrawString(part.Name)
+
+			// Draw QR code image.
+			partRectangle := image.Rectangle{Min: partLocation, Max: image.Point{stickerWidth + partLocation.X, stickerHeight + partLocation.Y}}
 			draw.Draw(paper, partRectangle, partImage, image.Point{0, 0}, draw.Over)
 		}
 		pages = append(pages, paper)
