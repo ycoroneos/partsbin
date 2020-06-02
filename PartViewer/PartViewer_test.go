@@ -6,6 +6,7 @@ import (
 	"image"
 	"testing"
 
+	"github.com/ycoroneos/partsbin/PartHelper"
 	"github.com/ycoroneos/partsbin/PartsDB"
 )
 
@@ -22,12 +23,12 @@ func TestGetQRCode(t *testing.T) {
 }
 func TestMakeQRGrid(t *testing.T) {
 	// Create some parts
-	var parts []*PartsDB.Part
+	var parts []PartsDB.Part
 	for i := 0; i < 150; i++ {
 		name := fmt.Sprintf("part%d", i)
-		parts = append(parts, &PartsDB.Part{
+		parts = append(parts, PartsDB.Part{
 			Name:   name,
-			QrCode: GetQRCode(name),
+			QrCode: PartHelper.GetQRCode(name),
 			Count:  1,
 		})
 	}

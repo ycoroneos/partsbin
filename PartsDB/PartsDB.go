@@ -6,6 +6,9 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"github.com/sahilm/fuzzy"
+	"github.com/ycoroneos/partsbin/PartHelper"
 )
 
 type Part struct {
@@ -19,22 +22,43 @@ type Part struct {
 }
 
 type partmanager struct {
-	Nrows    uint
-	Ncols    uint
-	Parts    [][]Part
-	Savefile string
+	Nrows       uint
+	Ncols       uint
+	Parts       [][]Part
+	Savefile    string
+	CabinetName string
 }
 
 type PartsDB interface {
 	FindFuzzyPart(name string) []Part
 	AddPart(name, raw_barcode string, amount uint)
 	IndexRC(row, col uint) (Part, bool)
+	GetAllActiveParts() []Part
 	Save()
 	Reload()
+	GetCabinetName() string
+}
+
+// some type expansion for the fuzzy find module
+type fuzzyparts []Part
+
+func (fz fuzzyparts) String(i int) string {
+	name := strings.ToLower(fz[i].Name)
+	return name
+}
+
+func (fz fuzzyparts) Len() int {
+	return len(fz)
 }
 
 func (pm *partmanager) FindFuzzyPart(name string) []Part {
-	return []Part{Part{}}
+	activeparts := pm.GetAllActiveParts()
+	results := fuzzy.FindFrom(strings.ToLower(name), fuzzyparts(activeparts))
+	partresults := make([]Part, 0)
+	for _, i := range results {
+		partresults = append(partresults, activeparts[i.Index])
+	}
+	return partresults
 }
 
 func (pm *partmanager) AddPart(name, raw_barcode string, amount uint) {
@@ -50,6 +74,7 @@ func (pm *partmanager) AddPart(name, raw_barcode string, amount uint) {
 				pm.Parts[row][col] = Part{
 					Row:         row,
 					Column:      col,
+					QrCode:      PartHelper.GetQRCode(name),
 					Count:       amount,
 					Name:        name,
 					Raw_barcode: raw_barcode,
@@ -77,6 +102,19 @@ func (pm *partmanager) IndexRC(row, col uint) (Part, bool) {
 	}
 }
 
+func (pm *partmanager) GetAllActiveParts() []Part {
+	parts := make([]Part, 0)
+	for row := uint(0); row < pm.Nrows; row++ {
+		for col := uint(0); col < pm.Ncols; col++ {
+			part, valid := pm.IndexRC(row, col)
+			if valid {
+				parts = append(parts, part)
+			}
+		}
+	}
+	return parts
+}
+
 func (pm *partmanager) Save() {
 	data, err := json.Marshal(pm)
 	if err != nil {
@@ -100,7 +138,11 @@ func (pm *partmanager) Reload() {
 
 }
 
-func MakeOrOpenPartsDB(filename string, ncols, nrows uint) PartsDB {
+func (pm *partmanager) GetCabinetName() string {
+	return pm.CabinetName
+}
+
+func MakeOrOpenPartsDB(filename, cutename string, ncols, nrows uint) PartsDB {
 	newfile := false
 	info, err := os.Stat(filename)
 	if os.IsNotExist(err) {
@@ -112,9 +154,10 @@ func MakeOrOpenPartsDB(filename string, ncols, nrows uint) PartsDB {
 	}
 
 	pm := &partmanager{
-		Nrows:    nrows,
-		Ncols:    ncols,
-		Savefile: filename,
+		Nrows:       nrows,
+		Ncols:       ncols,
+		Savefile:    filename,
+		CabinetName: cutename,
 	}
 
 	if newfile {
@@ -126,7 +169,7 @@ func MakeOrOpenPartsDB(filename string, ncols, nrows uint) PartsDB {
 		fmt.Printf("made new file %v\n", filename)
 	} else {
 		pm.Reload()
-		fmt.Printf("loaded file %v : %+v\n", filename, pm)
+		fmt.Printf("loaded file %v\n", filename)
 	}
 
 	return PartsDB(pm)

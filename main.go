@@ -6,13 +6,15 @@ import (
 	"os"
 	"strings"
 
+	"github.com/ycoroneos/partsbin/PartViewer"
 	"github.com/ycoroneos/partsbin/PartsDB"
 )
 
-func main() {
+func usage() {
+	fmt.Printf("./partsdb <scan | print | find>\n")
+}
 
-	pdb := PartsDB.MakeOrOpenPartsDB("parts_v1.json", 8, 8)
-
+func scannerapp(pdb PartsDB.PartsDB) {
 	// loop which reads barcode inputs and decodes them
 	scanner := bufio.NewReader(os.Stdin)
 	for {
@@ -23,6 +25,49 @@ func main() {
 		fmt.Printf("decoded %+q\n", barcode)
 		pdb.AddPart(barcode, rawBarcode, 1)
 		pdb.Save()
+	}
+
+}
+
+func printerapp(pdb PartsDB.PartsDB) {
+	images := PartViewer.MakeQRGrid(pdb.GetAllActiveParts())
+	for i, image := range images {
+		PartViewer.WriteToPNG(image, fmt.Sprintf("%s_grid_%d.png", pdb.GetCabinetName(), i))
+	}
+}
+
+func finderapp(pdb PartsDB.PartsDB) {
+	// loop which reads barcode inputs and decodes them
+	scanner := bufio.NewReader(os.Stdin)
+	for {
+		fmt.Printf("tell me your wish, stalker: ")
+		wish, _ := scanner.ReadString('\n')
+		wish = strings.TrimSpace(wish)
+		parts := pdb.FindFuzzyPart(wish)
+		fmt.Printf("%+v\n\n", parts)
+	}
+
+}
+
+func main() {
+
+	pdb := PartsDB.MakeOrOpenPartsDB("parts_v1.json", "shelf0", 8, 8)
+
+	cmdargs := os.Args[1:]
+
+	fmt.Printf("%+v", cmdargs)
+
+	if len(cmdargs) == 0 {
+		usage()
+	} else if strings.Compare(cmdargs[0], "scan") == 0 {
+		fmt.Printf("launched partsdb in scanner mode\n")
+		scannerapp(pdb)
+	} else if strings.Compare(cmdargs[0], "print") == 0 {
+		fmt.Printf("launched partsdb in printer mode\n")
+		printerapp(pdb)
+	} else if strings.Compare(cmdargs[0], "find") == 0 {
+		fmt.Printf("launched partsdb in finder mode\n")
+		finderapp(pdb)
 	}
 
 }
