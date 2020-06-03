@@ -20,8 +20,10 @@ func scannerapp(pdb PartsDB.PartsDB) {
 	for {
 		fmt.Printf("feed me barcode: ")
 		rawBarcode, _ := scanner.ReadString('\n')
+		fmt.Printf("raw barcode %+q\n", rawBarcode)
 		barcode := strings.SplitAfter(rawBarcode, "-ND")[0]
-		barcode = strings.SplitAfter(barcode, "[)>\x1b[20~06\x1b[19~P")[1]
+		barcode = strings.SplitAfter(barcode, "~P")[1]
+		//barcode = strings.SplitAfter(barcode, "[)>\x1b[20~06\x1b[19~P")[1]
 		fmt.Printf("decoded %+q\n", barcode)
 		success := pdb.AddPart(barcode, rawBarcode, 1)
 		if success {
