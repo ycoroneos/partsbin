@@ -23,8 +23,14 @@ func scannerapp(pdb PartsDB.PartsDB) {
 		barcode := strings.SplitAfter(rawBarcode, "-ND")[0]
 		barcode = strings.SplitAfter(barcode, "[)>\x1b[20~06\x1b[19~P")[1]
 		fmt.Printf("decoded %+q\n", barcode)
-		pdb.AddPart(barcode, rawBarcode, 1)
-		pdb.Save()
+		success := pdb.AddPart(barcode, rawBarcode, 1)
+		if success {
+			pdb.Save()
+			indexed_part := pdb.FindFuzzyPart(barcode)[0]
+			fmt.Printf("row : %d, col : %d, count : %d\n", indexed_part.Row, indexed_part.Column, indexed_part.Count)
+		} else {
+			fmt.Printf("out of space!\n")
+		}
 	}
 
 }

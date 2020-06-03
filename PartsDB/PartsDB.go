@@ -31,7 +31,7 @@ type partmanager struct {
 
 type PartsDB interface {
 	FindFuzzyPart(name string) []Part
-	AddPart(name, raw_barcode string, amount uint)
+	AddPart(name, raw_barcode string, amount uint) bool
 	IndexRC(row, col uint) (Part, bool)
 	GetAllActiveParts() []Part
 	Save()
@@ -61,7 +61,7 @@ func (pm *partmanager) FindFuzzyPart(name string) []Part {
 	return partresults
 }
 
-func (pm *partmanager) AddPart(name, raw_barcode string, amount uint) {
+func (pm *partmanager) AddPart(name, raw_barcode string, amount uint) bool {
 
 	// scan through all columns. If we enounter the name then also
 	// check that we have scanned a unique barcode. If so, add to the count.
@@ -80,18 +80,19 @@ func (pm *partmanager) AddPart(name, raw_barcode string, amount uint) {
 					Raw_barcode: raw_barcode,
 					Initialized: true,
 				}
-				return
+				return true
 			} else {
 				if strings.Compare(pm.Parts[row][col].Name, name) == 0 {
 					if strings.Compare(pm.Parts[row][col].Raw_barcode, raw_barcode) != 0 {
 						pm.Parts[row][col].Count += amount
 					}
-					return
+					return true
 				}
 			}
 
 		}
 	}
+	return false
 }
 
 func (pm *partmanager) IndexRC(row, col uint) (Part, bool) {
