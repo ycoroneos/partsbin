@@ -29,7 +29,7 @@ func scannerapp(pdb PartsDB.PartsDB) {
 		if success {
 			pdb.Save()
 			indexed_part := pdb.FindFuzzyPart(barcode)[0]
-			fmt.Printf("row : %d, col : %d, count : %d\n", indexed_part.Row, indexed_part.Column, indexed_part.Count)
+			fmt.Println(pdb.Show(indexed_part))
 		} else {
 			fmt.Printf("out of space!\n")
 		}
@@ -52,7 +52,9 @@ func finderapp(pdb PartsDB.PartsDB) {
 		wish, _ := scanner.ReadString('\n')
 		wish = strings.TrimSpace(wish)
 		parts := pdb.FindFuzzyPart(wish)
-		fmt.Printf("%+v\n\n", parts)
+		for _, p := range parts {
+			fmt.Println(pdb.Show(p))
+		}
 	}
 
 }
