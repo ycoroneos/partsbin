@@ -11,7 +11,7 @@ import (
 )
 
 func usage() {
-	fmt.Printf("./partsdb <scan | print | find>\n")
+	fmt.Printf("./partsdb <scan | print | find | convert>\n")
 }
 
 func scannerapp(pdb PartsDB.PartsDB) {
@@ -40,7 +40,7 @@ func scannerapp(pdb PartsDB.PartsDB) {
 func printerapp(pdb PartsDB.PartsDB) {
 	images := PartViewer.MakeQRGrid(pdb.GetAllActiveParts())
 	for i, image := range images {
-		PartViewer.WriteToPNG(image, fmt.Sprintf("%s_grid_%d.png", pdb.GetCabinetName(), i))
+		PartViewer.WriteToPNG(image, fmt.Sprintf("%s_grid_%d.png", pdb.GetUniqueName(), i))
 	}
 }
 
@@ -59,9 +59,32 @@ func finderapp(pdb PartsDB.PartsDB) {
 
 }
 
+func converterapp(args []string) {
+
+	usage := fmt.Sprintf("usage: <version_from> <version_to> <file_from> <file_to>\n")
+	if len(args) != 4 {
+		fmt.Printf("you said : %+v\n", args)
+		panic(usage)
+	}
+
+	version_from := args[0]
+	version_to := args[1]
+	file_from := args[2]
+	file_to := args[3]
+
+	if strings.Compare(version_from, "v1") == 0 && strings.Compare(version_to, "v2") == 0 {
+		PartsDB.ConvertFromPartsDBV1(file_from, file_to, 2)
+	}
+
+	fmt.Printf("finished converting, please check %s\n", file_to)
+
+}
+
 func main() {
 
-	pdb := PartsDB.MakeOrOpenPartsDB("parts_v1.json", "shelf0", 8, 8)
+	//pdb := PartsDB.MakeOrOpenPartsDB("parts_v1.json", "shelf0", 8, 8)
+	// we've moved to PDBV2
+	pdb := PartsDB.OpenPartsDBV2("parts_v2.json")
 
 	cmdargs := os.Args[1:]
 
@@ -78,6 +101,9 @@ func main() {
 	} else if strings.Compare(cmdargs[0], "find") == 0 {
 		fmt.Printf("launched partsdb in finder mode\n")
 		finderapp(pdb)
+	} else if strings.Compare(cmdargs[0], "convert") == 0 {
+		fmt.Printf("converting databases\n")
+		converterapp(cmdargs[1:])
 	}
 
 }

@@ -19,18 +19,6 @@ type partmanager struct {
 	CabinetName string
 }
 
-// some type expansion for the fuzzy find module
-type fuzzyparts []Part
-
-func (fz fuzzyparts) String(i int) string {
-	name := strings.ToLower(fz[i].Name)
-	return name
-}
-
-func (fz fuzzyparts) Len() int {
-	return len(fz)
-}
-
 func (pm *partmanager) FindFuzzyPart(name string) []Part {
 	activeparts := pm.GetAllActiveParts()
 	results := fuzzy.FindFrom(strings.ToLower(name), fuzzyparts(activeparts))
@@ -52,8 +40,8 @@ func (pm *partmanager) AddPart(name, raw_barcode string, amount uint) bool {
 			if !pm.Parts[row][col].Initialized {
 
 				pm.Parts[row][col] = Part{
-					Row:         row,
-					Column:      col,
+					Row:         int(row),
+					Column:      int(col),
 					QrCode:      PartHelper.GetQRCode(name),
 					Count:       amount,
 					Name:        name,
@@ -75,10 +63,20 @@ func (pm *partmanager) AddPart(name, raw_barcode string, amount uint) bool {
 	return false
 }
 
-func (pm *partmanager) IndexRC(row, col uint) (Part, bool) {
+func (pm *partmanager) nativeindex(row, col uint) (Part, bool) {
 	if row < pm.Nrows && col < pm.Ncols && pm.Parts[row][col].Initialized {
 		return pm.Parts[row][col], true
 	} else {
+		return Part{}, false
+	}
+}
+
+func (pm *partmanager) IndexMeta(i interface{}) (Part, bool) {
+	switch v := i.(type) {
+	case RCIndex:
+		return pm.nativeindex(uint(v.Row), uint(v.Col))
+	default:
+		fmt.Printf("unsupported indexing method %+v\n", v)
 		return Part{}, false
 	}
 }
@@ -87,7 +85,7 @@ func (pm *partmanager) GetAllActiveParts() []Part {
 	parts := make([]Part, 0)
 	for row := uint(0); row < pm.Nrows; row++ {
 		for col := uint(0); col < pm.Ncols; col++ {
-			part, valid := pm.IndexRC(row, col)
+			part, valid := pm.nativeindex(row, col)
 			if valid {
 				parts = append(parts, part)
 			}
@@ -119,14 +117,14 @@ func (pm *partmanager) Reload() {
 
 }
 
-func (pm *partmanager) GetCabinetName() string {
+func (pm *partmanager) GetUniqueName() string {
 	return pm.CabinetName
 }
 
 func (pm *partmanager) Show(p Part) string {
 	for row := uint(0); row < pm.Nrows; row++ {
 		for col := uint(0); col < pm.Ncols; col++ {
-			ipart, success := pm.IndexRC(row, col)
+			ipart, success := pm.nativeindex(row, col)
 			if success && ipart.Initialized && (strings.Compare(ipart.Name, p.Name) == 0) {
 				return fmt.Sprintf("row %d, col %d, count %d, pn %s\n", row, col, p.Count, p.Name)
 			}
@@ -164,6 +162,26 @@ func MakeOrOpenPartsDB(filename, cutename string, ncols, nrows uint) PartsDB {
 		pm.Reload()
 		fmt.Printf("loaded file %v\n", filename)
 	}
+
+	return PartsDB(pm)
+
+}
+
+func OpenPartsDB(filename string) PartsDB {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		panic(err)
+	}
+
+	if info.IsDir() {
+		panic("trying to open a directory")
+	}
+
+	pm := &partmanager{
+		Savefile: filename,
+	}
+
+	pm.Reload()
 
 	return PartsDB(pm)
 
