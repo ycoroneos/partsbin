@@ -156,13 +156,41 @@ func (pm *partmanagerV2) Show(p Part) string {
 					}
 					ipart, success := pm.IndexMeta(index)
 					if success && ipart.Initialized && (strings.Compare(ipart.Name, p.Name) == 0) {
-						return fmt.Sprintf("row %d, col %d, depth %d, count %d, pn %s\n", row, col, depth, p.Count, p.Name)
+						return fmt.Sprintf("cabinet %s, row %d, col %d, depth %d, count %d, pn %s\n", cab.CabinetName, row, col, depth, p.Count, p.Name)
 					}
 				}
 			}
 		}
 	}
 	return fmt.Sprintf("not found\n")
+}
+
+func (pm *partmanagerV2) AddCabinet(name string, rows, cols, depth int) bool {
+	cab := Cabinet{
+		Ncols:       cols,
+		Nrows:       rows,
+		Ndepth:      depth,
+		CabinetName: name,
+	}
+	cab.Parts = make([][][]Part, cab.Nrows)
+	for row := range cab.Parts {
+		cab.Parts[row] = make([][]Part, cab.Nrows)
+		for col := range cab.Parts[row] {
+			cab.Parts[row][col] = make([]Part, cab.Ndepth)
+			for depth := range cab.Parts[row][col] {
+				cab.Parts[row][col][depth] = Part{
+					Row:         row,
+					Column:      col,
+					Depth:       depth,
+					Initialized: false,
+				}
+			}
+		}
+	}
+
+	pm.Cabinets = append(pm.Cabinets, cab)
+
+	return true
 }
 
 func OpenPartsDBV2(filename string) PartsDB {

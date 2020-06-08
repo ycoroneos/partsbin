@@ -11,7 +11,7 @@ import (
 )
 
 func usage() {
-	fmt.Printf("./partsdb <scan | print | find | convert>\n")
+	fmt.Printf("./partsdb <scan | print | find | convert | admin>\n")
 }
 
 func scannerapp(pdb PartsDB.PartsDB) {
@@ -80,6 +80,23 @@ func converterapp(args []string) {
 
 }
 
+// one-off things you need to do with code
+func adminapp(args []string) {
+
+	usage := fmt.Sprintf("usage: <filename>\n")
+	if len(args) != 1 {
+		fmt.Printf("you said : %+v\n", args)
+		panic(usage)
+	}
+
+	pdb := PartsDB.OpenPartsDBV2(args[0])
+	pdb.AddCabinet("shelf1", 8, 8, 2)
+	pdb.Save()
+
+	fmt.Printf("finished adding cabinet, please check %s\n", args[0])
+
+}
+
 func main() {
 
 	//pdb := PartsDB.MakeOrOpenPartsDB("parts_v1.json", "shelf0", 8, 8)
@@ -104,6 +121,9 @@ func main() {
 	} else if strings.Compare(cmdargs[0], "convert") == 0 {
 		fmt.Printf("converting databases\n")
 		converterapp(cmdargs[1:])
+	} else if strings.Compare(cmdargs[0], "admin") == 0 {
+		fmt.Printf("administrating\n")
+		adminapp(cmdargs[1:])
 	}
 
 }

@@ -63,6 +63,10 @@ func (pm *partmanager) AddPart(name, raw_barcode string, amount uint) bool {
 	return false
 }
 
+func (pm *partmanager) AddCabinet(name string, rows, cols, depth int) bool {
+	return false
+}
+
 func (pm *partmanager) nativeindex(row, col uint) (Part, bool) {
 	if row < pm.Nrows && col < pm.Ncols && pm.Parts[row][col].Initialized {
 		return pm.Parts[row][col], true

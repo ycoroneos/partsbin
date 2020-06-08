@@ -34,6 +34,7 @@ type RCDCabinetIndex struct {
 type PartsDB interface {
 	FindFuzzyPart(name string) []Part
 	AddPart(name, raw_barcode string, amount uint) bool
+	AddCabinet(name string, rows, cols, depth int) bool
 	//IndexRC(row, col uint) (Part, bool)
 	//IndexRCD(row, col, depth int) (Part, bool)
 	IndexMeta(i interface{}) (Part, bool)
