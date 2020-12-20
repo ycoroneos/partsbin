@@ -39,9 +39,9 @@ func getPointFromPartIndex(index, rowCount, colCount, xStridePx, yStridePx, xOff
 
 func MakeQRGrid(parts []PartsDB.Part) []image.Image {
 	xStride := PartHelper.InchesToPixels(2.05)
-	yStride := PartHelper.InchesToPixels(.5)
+	yStride := PartHelper.InchesToPixels(.51)
 	stickerWidth := PartHelper.InchesToPixels(1.75)
-	stickerHeight := PartHelper.InchesToPixels(.5)
+	stickerHeight := PartHelper.InchesToPixels(.51)
 	colCount := 4
 	rowCount := 20
 	xOffsetPx, yOffsetPx := PartHelper.InchesToPixels(.3), PartHelper.InchesToPixels(.515) // coordinates of first sticker in inches
